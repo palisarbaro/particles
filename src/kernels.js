@@ -58,7 +58,7 @@ export function initKernels(gpu, PARTICLE_COUNT) {
 
     let updateSpeed = gpu
         .createKernel(
-            function (_pos, _speed, PARTICLE_COUNT, CANVAS_SIZE) {
+            function (_pos, _speed, PARTICLE_COUNT, CANVAS_SIZE, mouse) {
                 let i = this.thread.x
                 let acc = [0, 0]
                 let speed = _speed[i]
@@ -68,8 +68,13 @@ export function initKernels(gpu, PARTICLE_COUNT) {
                     // let speed2 = _speed[j]
                     let repulsion = -getForce(pos, pos2, 3,10000)
                     let attraction = getForce(pos, pos2, 2,100)
+                    let mouseForce = [0,0]
+                    let dmouse = pos
+                    dmouse -= mouse
+                    if(mouse[0]>0 && len(dmouse)<200) mouseForce = getForce(pos, mouse, 0, 0.0005);
                     acc += repulsion
                     acc += attraction
+                    acc += mouseForce
                 }
                 // acc = [1,0]
                 speed += acc
@@ -98,6 +103,7 @@ export function initKernels(gpu, PARTICLE_COUNT) {
                     _speed: 'Array1D(2)',
                     PARTICLE_COUNT: 'Integer',
                     CANVAS_SIZE: 'Float',
+                    mouse: 'Array(2)'
                 },
             }
         )
@@ -105,9 +111,12 @@ export function initKernels(gpu, PARTICLE_COUNT) {
     let updatePos = gpu
         .createKernel(
             function (pos, speed) {
+                const dt = 1;
                 let i = this.thread.x
                 let res = pos[i]
-                res += speed[i]
+                let sp = speed[i]
+                sp *= dt;
+                res += sp
                 return res
             },
             {

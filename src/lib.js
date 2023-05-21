@@ -55,13 +55,13 @@ export function init(_canvas) {
     //throw 123;
 }
 
-export function step() {
+export function step(io) {
     let lastKernel = null
     try {
         lastKernel = kernels.updateSpeed
         //console.log(pos, speed, PARTICLE_COUNT, CANVAS_SIZE)
-        console.log(gpu)
-        speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE)
+        //console.log(gpu)
+        speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE, io.mouse)
         lastKernel = kernels.updatePos
         pos = kernels.updatePos(pos, speed)
     } catch (e) {
@@ -70,16 +70,25 @@ export function step() {
         throw e
     }
     //console.log(kernels.updateSpeed.compiledFragmentShader)
-
 }
 
 export function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.beginPath();
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-        ctx.fillStyle = 'green'
         let [x, y] = pos[i]
+
         //console.log(x,y)
-        ctx.fillRect(x-VISIBLE_SIZE/2, y-VISIBLE_SIZE/2, VISIBLE_SIZE, VISIBLE_SIZE)
+        ctx.rect(
+            x - VISIBLE_SIZE / 2,
+            y - VISIBLE_SIZE / 2,
+            VISIBLE_SIZE,
+            VISIBLE_SIZE
+        )
         // throw 123;
     }
+    ctx.fillStyle = 'green'
+
+    ctx.fill();
+
 }

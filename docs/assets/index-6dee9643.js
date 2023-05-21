@@ -18427,7 +18427,7 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
     return [x[i], y[i]];
   }).setOutput([PARTICLE_COUNT2]);
   let updateSpeed = gpu2.createKernel(
-    function(_pos, _speed, PARTICLE_COUNT3, CANVAS_SIZE2) {
+    function(_pos, _speed, PARTICLE_COUNT3, CANVAS_SIZE2, mouse) {
       let i = this.thread.x;
       let acc = [0, 0];
       let speed2 = _speed[i];
@@ -18436,8 +18436,14 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
         let pos22 = _pos[j];
         let repulsion = -getForce(pos2, pos22, 3, 1e4);
         let attraction = getForce(pos2, pos22, 2, 100);
+        let mouseForce = [0, 0];
+        let dmouse = pos2;
+        dmouse -= mouse;
+        if (mouse[0] > 0 && len(dmouse) < 200)
+          mouseForce = getForce(pos2, mouse, 0, 5e-4);
         acc += repulsion;
         acc += attraction;
+        acc += mouseForce;
       }
       speed2 += acc;
       const MAX_SPEED = 20;
@@ -18460,15 +18466,19 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
         _pos: "Array1D(2)",
         _speed: "Array1D(2)",
         PARTICLE_COUNT: "Integer",
-        CANVAS_SIZE: "Float"
+        CANVAS_SIZE: "Float",
+        mouse: "Array(2)"
       }
     }
   ).setOutput([PARTICLE_COUNT2]);
   let updatePos = gpu2.createKernel(
     function(pos2, speed2) {
+      const dt = 1;
       let i = this.thread.x;
       let res = pos2[i];
-      res += speed2[i];
+      let sp = speed2[i];
+      sp *= dt;
+      res += sp;
       return res;
     },
     {
@@ -18515,12 +18525,11 @@ function init(_canvas) {
   speed = kernels.initVec2(speed_x, speed_y);
   kernels.initVec2(acc_x, acc_y);
 }
-function step() {
+function step(io2) {
   let lastKernel = null;
   try {
     lastKernel = kernels.updateSpeed;
-    console.log(gpu);
-    speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE);
+    speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE, io2.mouse);
     lastKernel = kernels.updatePos;
     pos = kernels.updatePos(pos, speed);
   } catch (e) {
@@ -18531,11 +18540,18 @@ function step() {
 }
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
   for (let i = 0; i < PARTICLE_COUNT; i++) {
-    ctx.fillStyle = "green";
     let [x, y] = pos[i];
-    ctx.fillRect(x - VISIBLE_SIZE / 2, y - VISIBLE_SIZE / 2, VISIBLE_SIZE, VISIBLE_SIZE);
+    ctx.rect(
+      x - VISIBLE_SIZE / 2,
+      y - VISIBLE_SIZE / 2,
+      VISIBLE_SIZE,
+      VISIBLE_SIZE
+    );
   }
+  ctx.fillStyle = "green";
+  ctx.fill();
 }
 let prev_time = /* @__PURE__ */ new Date();
 function FPS() {
@@ -18547,19 +18563,27 @@ function FPS() {
     prev_time = curr_time;
   }
 }
-document.body.style.zoom = "50%";
+document.body.style.zoom = "100%";
 init(document.getElementById("canvas"));
+let mouseDown = false;
+let io = {
+  mouse: [-1, -1]
+};
+document.addEventListener("mousemove", (e) => {
+  if (mouseDown)
+    io.mouse = [e.pageX, e.pageY];
+});
+document.addEventListener("mousedown", (e) => {
+  mouseDown = true;
+  io.mouse = [e.pageX, e.pageY];
+});
+document.addEventListener("mouseup", (e) => {
+  mouseDown = false;
+  io.mouse = [-1, -1];
+});
 function loop() {
-  step();
-  step();
-  step();
-  step();
-  step();
-  step();
-  step();
-  step();
-  step();
-  step();
+  for (let i = 0; i < 15; i++)
+    step(io);
   render();
   FPS();
   requestAnimationFrame(loop);
