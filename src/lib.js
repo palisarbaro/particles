@@ -59,6 +59,8 @@ export function step() {
     let lastKernel = null
     try {
         lastKernel = kernels.updateSpeed
+        //console.log(pos, speed, PARTICLE_COUNT, CANVAS_SIZE)
+        console.log(gpu)
         speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE)
         lastKernel = kernels.updatePos
         pos = kernels.updatePos(pos, speed)

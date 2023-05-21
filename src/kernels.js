@@ -1,9 +1,32 @@
+// |f| = coef/dp**pow 
+function getForce(pos1, pos2, pow, coef) {
+    let dp = pos2
+    dp -= pos1
+    let r = len(dp)
+    let force = [0, 0]
+    if (r > 0.01) {
+        dp = my_norm(dp)
+        force = dp
+        force /= Math.pow(r, pow)
+        
+    }
+    force *= coef
+    return force
+}
+
+function len(a) {
+    let sqr = a[0] * a[0] + a[1] * a[1]
+    return Math.sqrt(sqr)
+}
+
+function my_norm(a) {
+    a /= len(a)
+    return a
+}
+
 export function initKernels(gpu, PARTICLE_COUNT) {
     gpu.addFunction(
-        function len(a) {
-            let sqr = a[0] * a[0] + a[1] * a[1]
-            return Math.sqrt(sqr)
-        },
+        len,
         {
             argumentTypes: { a: 'Array(2)' },
             returnType: 'Float',
@@ -11,10 +34,7 @@ export function initKernels(gpu, PARTICLE_COUNT) {
     )
 
     gpu.addFunction(
-        function my_norm(a) {
-            a /= len(a)
-            return a
-        },
+       my_norm,
         {
             argumentTypes: { a: 'Array(2)' },
             returnType: 'Array(2)',
@@ -22,23 +42,9 @@ export function initKernels(gpu, PARTICLE_COUNT) {
     )
 
     gpu.addFunction(
-        // |f| = coef/dp**pow 
-        function getForce(pos1, pos2, pow, coef) {
-            let dp = pos2
-            dp -= pos1
-            let r = len(dp)
-            let force = [0, 0]
-            if (r > 0.01) {
-                dp = my_norm(dp)
-                force = dp
-                force /= Math.pow(r, pow)
-                
-            }
-            force *= coef
-            return force
-        },
+        getForce,
         {
-            argumentTypes: { pos1: 'Array(2)', pos2: 'Array(2)' },
+            argumentTypes: { pos1: 'Array(2)', pos2: 'Array(2)', pow: 'Float', coef: 'Float' },
             returnType: 'Array(2)',
         }
     )

@@ -1,3 +1,7 @@
 export default {
-    base: '/particles/'
-  }
+    build: {
+        minify: false,
+    },
+
+    base: '/particles/',
+}

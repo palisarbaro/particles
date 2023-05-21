@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --outDir docs",
-    "preview": "vite preview"
+    "preview": "vite preview --outDir docs"
   },
   "devDependencies": {
+    "terser": "^5.17.4",
     "vite": "^4.3.2"
   },
   "dependencies": {
