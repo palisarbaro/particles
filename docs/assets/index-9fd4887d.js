@@ -18547,6 +18547,7 @@ function FPS() {
     prev_time = curr_time;
   }
 }
+document.body.style.zoom = "50%";
 init(document.getElementById("canvas"));
 function loop() {
   step();
