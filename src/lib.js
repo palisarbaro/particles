@@ -3,8 +3,8 @@ import { initKernels } from './kernels'
 
 const PARTICLE_COUNT = 1000
 
-const CANVAS_SIZE = 800
-const VISIBLE_SIZE = 3
+const CANVAS_SIZE = 3000
+const VISIBLE_SIZE = 5
 // const BLOCKS_COUNT = 16
 
 // const BLOCK_SIZE = Math.floor(CANVAS_SIZE / BLOCKS_COUNT) // 50
@@ -43,8 +43,8 @@ export function init(_canvas) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         pos_x.push(Math.floor(Math.random() * CANVAS_SIZE))
         pos_y.push(Math.floor(Math.random() * CANVAS_SIZE))
-        speed_x.push(10)
-        speed_y.push(10)
+        speed_x.push(0)
+        speed_y.push(0)
         acc_x.push(0)
         acc_y.push(0)
     }
@@ -59,13 +59,7 @@ export function step() {
     let lastKernel = null
     try {
         lastKernel = kernels.updateSpeed
-        speed = kernels.updateSpeed(
-            pos,
-            speed,
-            acc,
-            PARTICLE_COUNT,
-            CANVAS_SIZE
-        )
+        speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE)
         lastKernel = kernels.updatePos
         pos = kernels.updatePos(pos, speed)
     } catch (e) {
@@ -73,6 +67,8 @@ export function step() {
         console.log(lastKernel.compiledFragmentShader)
         throw e
     }
+    //console.log(kernels.updateSpeed.compiledFragmentShader)
+
 }
 
 export function render() {
@@ -81,7 +77,7 @@ export function render() {
         ctx.fillStyle = 'green'
         let [x, y] = pos[i]
         //console.log(x,y)
-        ctx.fillRect(x, y, VISIBLE_SIZE, VISIBLE_SIZE)
+        ctx.fillRect(x-VISIBLE_SIZE/2, y-VISIBLE_SIZE/2, VISIBLE_SIZE, VISIBLE_SIZE)
         // throw 123;
     }
 }

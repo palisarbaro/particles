@@ -5,6 +5,15 @@ init(document.getElementById('canvas'))
 
 function loop() {
     step();
+    step();
+    step();
+    step();
+    step();
+    step();
+    step();
+    step();
+    step();
+    step();
     render()
     FPS()
     requestAnimationFrame(loop)
