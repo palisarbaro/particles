@@ -66,9 +66,9 @@ export function initKernels(gpu, PARTICLE_COUNT) {
                     // let speed2 = _speed[j]
                     let repulsion = -getForce(pos, pos2, 3, 10000)
                     let coef = type==type2 ? -1:1
-                    coef *= 300
+                    coef *= 700
                     if(type==0){
-                        coef*=2
+                        coef*=1.1
                     }
                     let attraction = getForce(pos, pos2, 2, coef)
                     let mouseForce = [0, 0]
