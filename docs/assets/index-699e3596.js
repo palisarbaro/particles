@@ -18384,7 +18384,7 @@ function getForce(pos1, pos2, pow, coef) {
   dp -= pos1;
   let r = len(dp);
   let force = [0, 0];
-  if (r > 0.01) {
+  if (r > 0.01 && r < 50) {
     dp = my_norm(dp);
     force = dp;
     force /= Math.pow(r, pow);
@@ -18401,41 +18401,45 @@ function my_norm(a) {
   return a;
 }
 function initKernels(gpu2, PARTICLE_COUNT2) {
-  gpu2.addFunction(
-    len,
-    {
-      argumentTypes: { a: "Array(2)" },
-      returnType: "Float"
-    }
-  );
-  gpu2.addFunction(
-    my_norm,
-    {
-      argumentTypes: { a: "Array(2)" },
-      returnType: "Array(2)"
-    }
-  );
-  gpu2.addFunction(
-    getForce,
-    {
-      argumentTypes: { pos1: "Array(2)", pos2: "Array(2)", pow: "Float", coef: "Float" },
-      returnType: "Array(2)"
-    }
-  );
+  gpu2.addFunction(len, {
+    argumentTypes: { a: "Array(2)" },
+    returnType: "Float"
+  });
+  gpu2.addFunction(my_norm, {
+    argumentTypes: { a: "Array(2)" },
+    returnType: "Array(2)"
+  });
+  gpu2.addFunction(getForce, {
+    argumentTypes: {
+      pos1: "Array(2)",
+      pos2: "Array(2)",
+      pow: "Float",
+      coef: "Float"
+    },
+    returnType: "Array(2)"
+  });
   let initVec2 = gpu2.createKernel(function(x, y) {
     let i = this.thread.x;
     return [x[i], y[i]];
   }).setOutput([PARTICLE_COUNT2]);
   let updateSpeed = gpu2.createKernel(
     function(_pos, _speed, PARTICLE_COUNT3, CANVAS_SIZE2, mouse) {
+      const TYPES = this.constants.TYPES;
       let i = this.thread.x;
+      let type = i % TYPES;
       let acc = [0, 0];
       let speed2 = _speed[i];
       let pos2 = _pos[i];
       for (let j = 0; j < PARTICLE_COUNT3; j++) {
+        let type2 = j % TYPES;
         let pos22 = _pos[j];
         let repulsion = -getForce(pos2, pos22, 3, 1e4);
-        let attraction = getForce(pos2, pos22, 2, 100);
+        let coef = type == type2 ? -1 : 1;
+        coef *= 700;
+        if (type == 0) {
+          coef *= 1.1;
+        }
+        let attraction = getForce(pos2, pos22, 2, coef);
         let mouseForce = [0, 0];
         let dmouse = pos2;
         dmouse -= mouse;
@@ -18447,7 +18451,10 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
       }
       speed2 += acc;
       const MAX_SPEED = 20;
-      speed2 = Math.max(Math.min(speed2, [MAX_SPEED, MAX_SPEED]), [-MAX_SPEED, -MAX_SPEED]);
+      speed2 = Math.max(Math.min(speed2, [MAX_SPEED, MAX_SPEED]), [
+        -MAX_SPEED,
+        -MAX_SPEED
+      ]);
       speed2 *= 0.9;
       let right = pos2[0] > CANVAS_SIZE2 && speed2[0] > 0;
       let left = pos2[0] < 0 && speed2[0] < 0;
@@ -18468,6 +18475,9 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
         PARTICLE_COUNT: "Integer",
         CANVAS_SIZE: "Float",
         mouse: "Array(2)"
+      },
+      constants: {
+        TYPES: 2
       }
     }
   ).setOutput([PARTICLE_COUNT2]);
@@ -18490,8 +18500,8 @@ function initKernels(gpu2, PARTICLE_COUNT2) {
   ).setOutput([PARTICLE_COUNT2]);
   return { updatePos, updateSpeed, initVec2 };
 }
-const PARTICLE_COUNT = 1e3;
-const CANVAS_SIZE = 3e3;
+const PARTICLE_COUNT = 500;
+const CANVAS_SIZE = 1500;
 const VISIBLE_SIZE = 5;
 let gpu = null;
 let kernels = null;
@@ -18526,31 +18536,24 @@ function init(_canvas) {
   kernels.initVec2(acc_x, acc_y);
 }
 function step(io2) {
-  let lastKernel = null;
-  try {
-    lastKernel = kernels.updateSpeed;
-    speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE, io2.mouse);
-    lastKernel = kernels.updatePos;
-    pos = kernels.updatePos(pos, speed);
-  } catch (e) {
-    console.log(lastKernel);
-    console.log(lastKernel.compiledFragmentShader);
-    throw e;
-  }
+  kernels.updateSpeed;
+  speed = kernels.updateSpeed(pos, speed, PARTICLE_COUNT, CANVAS_SIZE, io2.mouse);
+  kernels.updatePos;
+  pos = kernels.updatePos(pos, speed);
 }
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.beginPath();
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     let [x, y] = pos[i];
-    ctx.rect(
+    ctx.fillStyle = i % 2 == 0 ? "green" : "red";
+    ctx.fillRect(
       x - VISIBLE_SIZE / 2,
       y - VISIBLE_SIZE / 2,
       VISIBLE_SIZE,
       VISIBLE_SIZE
     );
   }
-  ctx.fillStyle = "green";
   ctx.fill();
 }
 let prev_time = /* @__PURE__ */ new Date();
